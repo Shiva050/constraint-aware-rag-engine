@@ -21,7 +21,7 @@ The system is designed as a reusable knowledge module for downstream AI agents.
 - Evaluation harness for regression testing
 
 ## Architecture
-
+Architecture: docs/architecture.md
 
 ## Example Use Cases
 - Destination knowledge retrieval under user constraints
