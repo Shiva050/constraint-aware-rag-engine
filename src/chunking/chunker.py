@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Tuple, Iterable
+from patterns import _CONSTRAINT_PATTERNS, _FACT_PATTERNS
 import re
 import hashlib
 
@@ -113,44 +114,6 @@ def normalize_ws(text: str) -> str:
 def clamp(n: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, n))
 
-_CONSTRAINT_PATTERNS = [
-    r"\bmust\b",
-    r"\brequired\b",
-    r"\bneed to\b",
-    r"\bshould not\b",
-    r"\bmust not\b",
-    r"\bnever\b",
-    r"\bavoid\b",
-    r"\bprohibited\b",
-    r"\bnot allowed\b",
-    r"\bclosed\b",
-    r"\breservation\b",
-    r"\bpermit\b",
-    r"\bvisa\b",
-    r"\bID\b",
-    r"\bminimum\b",
-    r"\bmaximum\b",
-    r"\bcap\b",
-    r"\bno (pets|drones|campfires|fires)\b",
-    r"\bhours?\b",
-    r"\bopen\b",
-    r"\bseason(al)?\b",
-    r"\bweather\b",
-    r"\broad\b.*\bclosed\b",
-]
-
-_FACT_PATTERNS = [
-    r"\b(?:\d{1,2}:\d{2})\b",                    # time like 08:30
-    r"\b(?:am|pm)\b",                            # am/pm
-    r"\b(?:mile|miles|mi|km|kilometer)\b",
-    r"\b(?:hour|hours|hr|hrs)\b",
-    r"\b(?:\$|usd|eur|₹)\b",
-    r"\b(?:temperature|°F|°C)\b",
-    r"\b(?:latitude|longitude)\b",
-    r"\b(?:drive|driving)\s+time\b",
-    r"\b(?:distance)\b",
-    r"\b(?:address)\b",
-]
 
 _constraint_re = re.compile("|".join(_CONSTRAINT_PATTERNS), re.IGNORECASE)
 _fact_re = re.compile("|".join(_FACT_PATTERNS), re.IGNORECASE)
