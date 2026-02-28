@@ -1,55 +1,70 @@
+# retriever.py
 from __future__ import annotations
-
-import time
-from typing import Optional
-
-import numpy as np
-from sentence_transformers import SentenceTransformer
-
-from src.index.faiss_index import FaissVectorIndex
-from src.schemas.retrieval import Citation, RetrievalChunk, RetrievalResult
+from typing import Any, Dict, List, Optional, Tuple
 
 
-class Retriever:
-    def __init__(self, model_name: str, index_dir: str):
-        self.model_name = model_name
-        self.embedder = SentenceTransformer(model_name)
-        self.index = FaissVectorIndex.load(index_dir)
+class ContextAwareRetriever:
+    """
+    Retrieval policy:
+    1) Retrieve top-k child chunks from Chroma
+    2) Group results by parent_id
+    3) Fetch parent text (for coherent expansion)
+    4) Return context blocks that contain:
+         - heading_path
+         - parent_text
+         - top child snippets under the parent
+    """
 
-    def embed_query(self, query: str) -> np.ndarray:
-        vec = self.embedder.encode([query], convert_to_numpy=True, normalize_embeddings=False)
-        return vec[0]
+    def __init__(self, child_index, parent_store):
+        self.child_index = child_index
+        self.parent_store = parent_store
 
-    def retrieve(self, query: str, top_k: int = 10, min_score_threshold: float = 0.2) -> RetrievalResult:
-        t0 = time.time()
-        qv = self.embed_query(query)
-        scores, idxs = self.index.search(qv, top_k)
+    def retrieve(
+        self,
+        query: str,
+        embedder,
+        k: int = 12,
+        where: Optional[Dict] = None,          # default None => all chunk types
+        per_parent_children: int = 3,
+    ) -> List[Dict[str, Any]]:
+        res = self.child_index.query(query, embedder, k=k, where=where)
 
-        chunks: list[RetrievalChunk] = []
-        for score, idx in zip(scores.tolist(), idxs.tolist()):
-            if idx < 0:
-                continue
-            if score < min_score_threshold:
-                continue
-            chunk_id = self.index.id_map[idx]
-            c = self.index.chunk_store[chunk_id]
-            snippet = c["text"][:240].replace("\n", " ").strip()
+        ids = res["ids"][0]
+        docs = res["documents"][0]
+        metas = res["metadatas"][0]
+        dists = res.get("distances", [[None] * len(ids)])[0]
 
-            citation = Citation(
-                source_id=c["doc_id"],
-                title=c["title"],
-                url=c.get("url"),
-                chunk_id=c["chunk_id"],
-                snippet=snippet,
+        # group hits by parent_id
+        grouped: Dict[str, List[Tuple[str, str, Dict[str, Any], Any]]] = {}
+        for cid, txt, m, dist in zip(ids, docs, metas, dists):
+            pid = m.get("parent_id")
+            grouped.setdefault(pid, []).append((cid, txt, m, dist))
+
+        assembled: List[Dict[str, Any]] = []
+        for pid, items in grouped.items():
+            # fetch parent text for context expansion
+            parent = self.parent_store.get(pid)
+            parent_text = parent["text"] if parent else ""
+
+            # heading_path_str is stored in child metadata
+            heading = items[0][2].get("heading_path_str", "")
+
+            assembled.append(
+                {
+                    "parent_id": pid,
+                    "heading_path": heading,
+                    "parent_text": parent_text,
+                    "children": [
+                        {
+                            "chunk_id": cid,
+                            "chunk_type": m.get("chunk_type"),
+                            "text": txt,
+                            "distance": dist,
+                            "meta": m,
+                        }
+                        for (cid, txt, m, dist) in items[:per_parent_children]
+                    ],
+                }
             )
-            chunks.append(RetrievalChunk(citation=citation, text=c["text"], score=float(score)))
 
-        latency_ms = int((time.time() - t0) * 1000)
-        return RetrievalResult(
-            query=query,
-            top_k=top_k,
-            chunks=chunks,
-            min_score_threshold=min_score_threshold,
-            used_chunks=len(chunks),
-            retrieval_latency_ms=latency_ms,
-        )
+        return assembled
