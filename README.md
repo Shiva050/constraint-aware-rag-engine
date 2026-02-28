@@ -30,29 +30,30 @@ The architecture separates **offline indexing** from **online retrieval + constr
 ```mermaid
 flowchart TB
   subgraph Offline_Build["Offline Build (Indexing)"]
-    A[Raw Sources\n(PDF / MD / Web / Notes)] --> B[Ingestion & Normalization\ndoc_id, source, doc_title]
-    B --> C[Structure-First Chunker\nParent–Child + Type Classification\n(constraint/fact/narrative/table/code)]
-    C --> P[(Parent Store\nparents.json / SQLite\nparent_id → text + meta)]
-    C --> E[Embeddings (Sentence-Transformers)]
-    E --> V[(Vector Index: ChromaDB\nchild_chunks collection)]
+    A["Raw Sources<br/>(PDF / MD / Web / Notes)"] --> B["Ingestion & Normalization<br/>doc_id, source, doc_title"]
+    B --> C["Structure-First Chunker<br/>Parent–Child + Type Classification<br/>(constraint/fact/narrative/table/code)"]
+    C --> P["Parent Store<br/>parents.json / SQLite<br/>parent_id -> text + meta"]
+    C --> E["Embeddings (Sentence-Transformers)"]
+    E --> V["Vector Index: ChromaDB<br/>child_chunks collection"]
   end
 
   subgraph Online_Query["Online Query (Retrieval + Constraints)"]
-    Q[User Query] --> QE[Query Embedding\n(Sentence-Transformers)]
-    QE --> R[Retriever\nTop-k child chunks]
+    Q["User Query"] --> QE["Query Embedding<br/>(Sentence-Transformers)"]
+    QE --> R["Retriever<br/>Top-k child chunks"]
     V --> R
-    R --> X[Parent Expansion\nFetch by parent_id]
+    R --> X["Parent Expansion<br/>Fetch by parent_id"]
     P --> X
 
-    X --> CF[Constraint Engine\n(Hard Filters)]
-    CF --> PR[Preference Ranking\n(Soft Constraints)]
-    PR --> CP[Context Packing\n(Token / Char Budget + Dedup)]
-    CP --> G[Generator (LLM)]
-    G --> O[Structured Output\nCitedAnswer / TravelBrief\n+ citations]
+    X --> CF["Constraint Engine<br/>(Hard Filters)"]
+    CF --> PR["Preference Ranking<br/>(Soft Constraints)"]
+    PR --> CP["Context Packing<br/>(Token / Char Budget + Dedup)"]
+    CP --> G["Generator (LLM)"]
+    G --> O["Structured Output<br/>CitedAnswer / TravelBrief<br/>+ citations"]
   end
 
-  V -. serves .-> R
-  P -. serves .-> X
+  V -. "serves" .-> R
+  P -. "serves" .-> X
+```
 
 ## Core Design Principles
 
