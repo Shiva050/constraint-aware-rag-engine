@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Tuple, Iterable
-from patterns import _CONSTRAINT_PATTERNS, _FACT_PATTERNS
+from .patterns import _CONSTRAINT_PATTERNS, _FACT_PATTERNS
 import re
 import hashlib
 
@@ -753,21 +753,18 @@ Reservations required for some campgrounds.
 | Bixby Bridge | Busy mid-day |
 | Pfeiffer Beach | Limited parking |
 
-```python
-def hello():
-    return "world"
 """
 
-parents, children = chunk_document(
-    doc_id="doc_001",
-    doc_title="Trip Notes",
-    source="user_notes",
-    text=sample,
-)
+    parents, children = chunk_document(
+        doc_id="doc_001",
+        doc_title="Trip Notes",
+        source="user_notes",
+        text=sample,
+    )
 
-print(f"Parents: {len(parents)}")
-print(f"Children: {len(children)}")
-for c in children:
-    hp = " > ".join(c.meta.get("heading_path", []))
-    preview = c.text[:90] + ("..." if len(c.text) > 90 else "")
-    print(f"{c.chunk_type:10} | {hp:30} | {preview}")
+    print(f"Parents: {len(parents)}")
+    print(f"Children: {len(children)}")
+    for c in children:
+        hp = " > ".join(c.meta.get("heading_path", []))
+        preview = c.text[:90] + ("..." if len(c.text) > 90 else "")
+        print(f"{c.chunk_type:10} | {hp:30} | {preview}")

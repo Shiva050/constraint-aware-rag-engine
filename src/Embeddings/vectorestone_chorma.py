@@ -55,8 +55,13 @@ class ChromaChildIndex:
 
     def query(self, query_text: str, embedder, k: int = 10, where: Optional[Dict] = None):
         q = embedder.embed_query(query_text)
-        return self.col.query(
-            query_embeddings=[q],
-            n_results=k,
-            where=where or {},
-        )
+
+        kwargs = {
+            "query_embeddings": [q],
+            "n_results": k,
+        }
+        # Only include where if it's non-empty
+        if where:
+            kwargs["where"] = where
+
+        return self.col.query(**kwargs)
