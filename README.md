@@ -23,6 +23,44 @@ The engine combines semantic retrieval with a deterministic constraint engine an
 ## Architecture
 See the full architecture writeup in [docs/architecture.md](docs/architecture.md). The high-level components are: ingestion → chunking → embeddings & index → retrieval → constraint engine → ranking → context packing → generator → evaluation.
 
+### Architecture Diagram
+Below is a high-level architecture flow diagram illustrating the main data flow and components.
+
+```mermaid
+flowchart LR
+		A[Raw Sources]
+		B[Ingestion]
+		C[Chunking]
+		D[Embeddings]
+		E[Vector Index (Chroma/FAISS)]
+		F[Retrieval]
+		G[Constraint Engine (hard filters)]
+		H[Preference Ranking (soft constraints)]
+		I[Context Packing (token budget)]
+		J[Generator (LLM)]
+		K[Structured Output (TravelBrief / CitedAnswer)]
+
+		A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+
+		subgraph Offline_Build
+			B
+			C
+			D
+			E
+		end
+
+		subgraph Online_Query
+			F
+			G
+			H
+			I
+			J
+			K
+		end
+```
+
+If you prefer a PNG/SVG export of the diagram for presentations, I can generate and add it to the `docs/` folder.
+
 ## Quickstart
 Prerequisites: Python 3.10+ and a POSIX-like shell (macOS/Linux).
 
