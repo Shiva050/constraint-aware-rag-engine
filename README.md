@@ -22,15 +22,13 @@ The engine combines semantic retrieval with a deterministic constraint engine an
 ## Architecture
 See the full architecture writeup in [docs/architecture.md](docs/architecture.md). The high-level components are: ingestion → chunking → embeddings & index → retrieval → constraint engine → ranking → context packing → generator → evaluation.
 
-### Architecture Diagram
-Below is a high-level architecture flow diagram illustrating the main data flow and components.
+
+## System Overview
+
+The architecture separates **offline indexing** from **online retrieval + constraint execution**.
 
 ```mermaid
 flowchart TB
-  %% =========================
-  %% Constraint-Aware RAG Engine
-  %% =========================
-
   subgraph Offline_Build["Offline Build (Indexing)"]
     A[Raw Sources<br/>(PDF / MD / Web / Notes)] --> B[Ingestion & Normalization<br/>doc_id, source, doc_title]
     B --> C[Structure-First Chunker<br/>Parent–Child + Type Classification<br/>(constraint/fact/narrative/table/code)]
@@ -53,9 +51,40 @@ flowchart TB
     G --> O[Structured Output<br/>CitedAnswer / TravelBrief<br/>+ citations]
   end
 
-  %% Data flow join
   V -. serves .-> R
   P -. serves .-> X
+
+## Core Design Principles
+
+1) Structure-First Chunking
+
+- Markdown-aware parsing
+- Parent–child hierarchy
+- Chunk typing:
+  - constraint
+  - fact
+  - narrative
+  - table
+  - code
+
+Child chunks are optimized for retrieval precision.
+Parent chunks are used for coherent context expansion.
+
+2) Deterministic Constraint Filtering
+
+Hard constraints are applied before ranking or generation. Invalid candidates are removed prior to prompt construction.
+
+3) Preference-Aware Ranking
+
+Soft constraints influence ranking without excluding valid candidates.
+
+4) Token-Budgeted Context Packing
+
+Context is deduplicated, ordered by constraint priority, and truncated within a strict token/character budget.
+
+5) Citation-Grounded Output
+
+Each generated response can trace back to doc_id, parent_id, and chunk_id, enabling auditing and regression tests.
 
 ## Quickstart
 Prerequisites: Python 3.10+ and a POSIX-like shell (macOS/Linux).
@@ -100,6 +129,3 @@ If you update source documents or embeddings, rebuild the index via your ingesti
 ## Contributing
 - Follow the code style in `src/` and add small, testable changes.
 - When updating the index, avoid committing large binary index files unless intended for distributable demos.
-
-## License
-See the repository root for license terms (add license file if needed).
