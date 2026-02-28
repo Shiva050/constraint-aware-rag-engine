@@ -1,36 +1,37 @@
 # Constraint-Aware Retrieval Engine for AI Agents
 
-This repository implements a constraint-aware Retrieval-Augmented Generation (RAG) engine designed to produce structured, auditable, and constraint-compliant outputs for downstream AI agents.
-
-## Problem
-LLMs alone cannot reliably answer domain-specific questions when responses must satisfy explicit constraints (budget, preferences, safety, distance, etc.) and remain grounded in verifiable sources.
-
-## Solution Overview
-The engine combines semantic retrieval with a deterministic constraint engine and preference-aware ranking to ensure only eligible evidence is injected into the LLM prompt. Key outcomes:
-- Constraint filtering (hard constraints)
-- Preference-aware ranking (soft constraints)
-- Token-budgeted context packing
-- Schema-driven generation with explicit citations
-
-## Key Capabilities
-- Semantic retrieval with embeddings and vector search
-- Deterministic constraint filtering and preference ranking
-- Token-budgeted context packing to control prompt size and cost
-- Citation-grounded generation with structured output schemas
-- Failure-aware responses and evaluation harness for regressions
-
-## Architecture
-See the full architecture writeup in [docs/architecture.md](docs/architecture.md). The high-level components are: ingestion → chunking → embeddings & index → retrieval → constraint engine → ranking → context packing → generator → evaluation.
-
-
-## System Overview
-
-The architecture separates **offline indexing** from **online retrieval + constraint execution**.
-
 ```mermaid
-flowchart TB
-  subgraph Offline_Build["Offline Build (Indexing)"]
-    A[Raw Sources\n(PDF / MD / Web / Notes)] --> B[Ingestion & Normalization\ndoc_id, source, doc_title]
+flowchart LR
+    A[Raw Sources]
+    B[Ingestion]
+    C[Chunking]
+    D[Embeddings]
+    E[Vector Index]
+    F[Retrieval]
+    G[Constraint Engine]
+    H[Preference Ranking]
+    I[Context Packing]
+    J[Generator]
+    K[Structured Output]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+
+    subgraph Offline_Build[Offline Build (Indexing)]
+      B
+      C
+      D
+      E
+    end
+
+    subgraph Online_Query[Online Query (Retrieval + Constraints)]
+      F
+      G
+      H
+      I
+      J
+      K
+    end
+```
     B --> C[Structure-First Chunker\nParent–Child + Type Classification\n(constraint/fact/narrative/table/code)]
     C --> P[(Parent Store\nparents.json / SQLite\nparent_id → text + meta)]
     C --> E[Embeddings (Sentence-Transformers)]
