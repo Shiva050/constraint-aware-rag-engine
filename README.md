@@ -86,6 +86,31 @@ Context is deduplicated, ordered by constraint priority, and truncated within a 
 
 Each generated response can trace back to doc_id, parent_id, and chunk_id, enabling auditing and regression tests.
 
+## Project Structure
+
+```
+src/
+ ├── ingest/
+ │   └── loader.py
+ │
+ ├── chunking/
+ │   └── chunker.py
+ │
+ ├── embeddings/
+ │   ├── embeddings_st.py
+ │   └── index_pipeline.py
+ │
+ ├── retrieve/
+ │   ├── retriever.py
+ │   └── retrieverdemo.py
+ │
+ ├── constraints/
+ │   └── constraint_engine.py
+ │
+ docs/
+  └── architecture.md
+```
+
 ## Quickstart
 Prerequisites: Python 3.10+ and a POSIX-like shell (macOS/Linux).
 
