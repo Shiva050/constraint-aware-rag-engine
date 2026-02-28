@@ -5,6 +5,10 @@ from ..embeddings.vectorestone_chorma import ChromaChildIndex
 from .retriever import ContextAwareRetriever
 
 
+def preview_text(t: str, max_len: int = 120) -> str:
+    t = t.replace("\n", " ").strip()
+    return t[:max_len] + ("..." if len(t) > max_len else "")
+
 if __name__ == "__main__":
     embedder = STEmbedder()
 
@@ -22,5 +26,5 @@ if __name__ == "__main__":
         print("Parent preview:", (b["parent_text"][:200] + "...") if b["parent_text"] else "<no parent>")
         print("\nTop child hits:")
         for c in b["children"]:
-            preview = c["text"][:120].replace("\n", " ")
+            preview = preview_text(c["text"])
             print(f"- [{c['chunk_type']}] {preview}...")
