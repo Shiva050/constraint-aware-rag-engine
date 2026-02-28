@@ -1,5 +1,4 @@
 # Constraint-Aware Retrieval Engine for AI Agents
-# Constraint-Aware Retrieval Engine for AI Agents
 
 This repository implements a constraint-aware Retrieval-Augmented Generation (RAG) engine designed to produce structured, auditable, and constraint-compliant outputs for downstream AI agents.
 
@@ -27,39 +26,36 @@ See the full architecture writeup in [docs/architecture.md](docs/architecture.md
 Below is a high-level architecture flow diagram illustrating the main data flow and components.
 
 ```mermaid
-flowchart LR
-		A[Raw Sources]
-		B[Ingestion]
-		C[Chunking]
-		D[Embeddings]
-		E[Vector Index (Chroma/FAISS)]
-		F[Retrieval]
-		G[Constraint Engine (hard filters)]
-		H[Preference Ranking (soft constraints)]
-		I[Context Packing (token budget)]
-		J[Generator (LLM)]
-		K[Structured Output (TravelBrief / CitedAnswer)]
+flowchart TB
+  %% =========================
+  %% Constraint-Aware RAG Engine
+  %% =========================
 
-		A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+  subgraph Offline_Build["Offline Build (Indexing)"]
+    A[Raw Sources<br/>(PDF / MD / Web / Notes)] --> B[Ingestion & Normalization<br/>doc_id, source, doc_title]
+    B --> C[Structure-First Chunker<br/>Parent–Child + Type Classification<br/>(constraint/fact/narrative/table/code)]
+    C --> P[(Parent Store<br/>parents.json / SQLite<br/>parent_id → text + meta)]
+    C --> E[Embeddings (Sentence-Transformers)]
+    E --> V[(Vector Index: ChromaDB<br/>child_chunks collection)]
+  end
 
-		subgraph Offline_Build
-			B
-			C
-			D
-			E
-		end
+  subgraph Online_Query["Online Query (Retrieval + Constraints)"]
+    Q[User Query] --> QE[Query Embedding<br/>(Sentence-Transformers)]
+    QE --> R[Retriever<br/>Top-k child chunks]
+    V --> R
+    R --> X[Parent Expansion<br/>Fetch by parent_id]
+    P --> X
 
-		subgraph Online_Query
-			F
-			G
-			H
-			I
-			J
-			K
-		end
-```
+    X --> CF[Constraint Engine<br/>(Hard Filters)]
+    CF --> PR[Preference Ranking<br/>(Soft Constraints)]
+    PR --> CP[Context Packing<br/>(Token / Char Budget + Dedup)]
+    CP --> G[Generator (LLM)]
+    G --> O[Structured Output<br/>CitedAnswer / TravelBrief<br/>+ citations]
+  end
 
-If you prefer a PNG/SVG export of the diagram for presentations, I can generate and add it to the `docs/` folder.
+  %% Data flow join
+  V -. serves .-> R
+  P -. serves .-> X
 
 ## Quickstart
 Prerequisites: Python 3.10+ and a POSIX-like shell (macOS/Linux).
